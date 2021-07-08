@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[103]:
+
+
+import pandas as pd
+import numpy as np
+from bs4 import BeautifulSoup
+import requests
+from tqdm.notebook import tqdm_notebook
+import time
+import tqdm
+
+
+# Группы, с которых будем парсить:
+# 
+# FTP https://vk.com/ftp_memes
+# id:-65596623
+# 
+# MDK https://vk.com/mudakoff
+# id:-57846937
+# 
+# Reddit https://vk.com/reddit
+# id:-150550417
+# 
+# Рифмы и панчи https://vk.com/public28905875
+# id: -28905875
+# 
+# ВПШ: https://vk.com/public73247559
+# id:-73247559
+# 
+# Овсянка https://vk.com/public66678575
+# id:-66678575
+# 
+# Пикабу https://vk.com/public31480508
+# id:-31480508
+# 
+# На приеме у шевцова https://vk.com/itpedia_youtube
+# id:-88245281
+# 
+# NR https://vk.com/nrmusicru
+# id:-29573241
+# 
+
+# In[2]:
+
+
+method = "wall.get"
+parameters = "owner_id=-88245281&extended=1&count=100"
+version = '5.52'
+def get_posts(parameters,token, version = '5.52', method = "wall.get"):
+    url = 'https://api.vk.com/method/' + method +     '?' + parameters + '&v=' + version + '&access_token=' + token
+    
+    response  = requests.get(url)
+    
+    return response.json()['response']['items']
+
+def get_comments(parameters, method = "wall.getComments", version = '5.52'):
+    url = 'https://api.vk.com/method/' + method +     '?' + parameters + '&v=' + version + '&access_token=' + token
+    
+    response = requests.get(url)
+    return response.json()['response']['items']
+
+
+# In[8]:
+
+
+id_p = '7895762'
+token = '*****'
+
+
+# In[27]:
+
+
+group_ids = [-65596623, -57846937, -150550417, -28905875, -73247559, -66678575, -31480508, -88245281, -29573241]
+
+
+# In[28]:
+
+
+group_data = pd.DataFrame()
+for offset in range(0, 1000, 100):
+    for id in group_ids:
+        parameters = "owner_id={}&offset={}&count=100".format(id, offset)
+        groups = get_posts(parameters, token)
+        data = pd.DataFrame.from_dict(groups)
+        data['group_id'] = id
+        group_data = pd.concat([data, group_data])
+        time.sleep(1)
+
+
+# In[99]:
+
+
+ids = [(group_data.iloc[i,0],group_data.iloc[i,2])  for i in range(len(group_data))]
+df = pd.DataFrame()
+for id, owner_id in tqdm_notebook(ids):
+    parameters = "post_id={}&owner_id={}&count=100&need_likes=1".format(id, owner_id)
+    comments = get_comments(parameters)
+    data = pd.DataFrame.from_dict(comments)
+    data['post_id'] = id
+    df = pd.concat([data, df])
+    time.sleep(0.1)
+
+
+# In[102]:
+
+
+df.to_csv(r'C:\Users\User\Desktop\Прога\Питон\аналитика вк\парсинг вк\parsed_comments4725.csv')
+
